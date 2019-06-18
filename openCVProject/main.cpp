@@ -51,12 +51,12 @@ void showFPS(Mat frame, double frame_time) {
 void execute(Mat frame, string window_name, double frame_time) {
 	resize(frame, frame, Size(640, 360));
 	Mat gray_frame;
-	//cvtColor(frame, gray_frame, COLOR_RGB2GRAY);
-	//vector<Rect> rectangles;
-	//person_cascade.detectMultiScale(gray_frame, rectangles);
-	//for (int i = 0; i < rectangles.size(); i++) {
-	//	rectangle(frame, rectangles[i], Scalar(255, 255, 0));
-	//}
+	cvtColor(frame, gray_frame, COLOR_RGB2GRAY);
+	vector<Rect> rectangles;
+	person_cascade.detectMultiScale(gray_frame, rectangles);
+	for (int i = 0; i < rectangles.size(); i++) {
+		rectangle(frame, rectangles[i], Scalar(255, 255, 0));
+	}
 	showFPS(frame, frame_time);
 	imshow(window_name, frame);
 }
