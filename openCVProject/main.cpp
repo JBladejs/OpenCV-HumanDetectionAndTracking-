@@ -18,14 +18,21 @@ double getFrameDelay(VideoCapture capture) {
 	return frame_delay;
 }
 
-int display(string video_name) {
-	//opening videofile and getting deley between frames
-	VideoCapture cap(video_name);
-	double frame_delay = getFrameDelay(cap);
+void display(Mat frame) {
 
 }
 
+void play(string video_name) {
+	//opening videofile and getting deley between frames
+	VideoCapture cap(video_name);
+	double frame_delay = getFrameDelay(cap);
+	Mat frame;
+	while (cap.read(frame)) {
+		display(frame);
+	}
+}
+
 int main() {
-	display("TownCentreXVID.avi");
+	play("TownCentreXVID.avi");
 	return 0;
 }
