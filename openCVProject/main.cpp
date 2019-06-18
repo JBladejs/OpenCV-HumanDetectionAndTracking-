@@ -42,9 +42,9 @@ void play(string video_name) {
 	VideoCapture cap(video_name);
 	double frame_delay = getFrameDelay(cap);
 	Mat frame;
-	String window_name;
+	string window_name;
 	namedWindow(window_name, CV_WINDOW_AUTOSIZE);
-	while (cap.read(frame) && turned_on) {
+	while (cap.read(frame) && turned_on && cvGetWindowProperty(&window_name[0u], 0) >= 0) {
 		double time = clock();
 		execute(frame, window_name);
 		time -= clock();
