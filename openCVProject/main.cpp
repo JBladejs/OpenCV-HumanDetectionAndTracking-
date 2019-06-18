@@ -18,18 +18,27 @@ double getFrameDelay(VideoCapture capture) {
 	return frame_delay;
 }
 
-void display(Mat frame) {
-
+void execute(Mat frame, string window_name) {
+	imshow(window_name, frame);
 }
 
 void play(string video_name) {
-	//opening videofile and getting deley between frames
 	VideoCapture cap(video_name);
 	double frame_delay = getFrameDelay(cap);
 	Mat frame;
+	String window_name;
+	namedWindow(window_name, CV_WINDOW_AUTOSIZE);
 	while (cap.read(frame)) {
-		display(frame);
+		double time = clock();
+		execute(frame, window_name);
+		time -= clock();
+		double delay = frame_delay - time;
+		int key;
+		if(delay > 0) key = waitKey(delay);
+		else key = waitKey(1);
 	}
+	cap.release();
+	cvDestroyAllWindows();
 }
 
 int main() {
