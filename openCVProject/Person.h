@@ -12,6 +12,6 @@ public:
 	Person(cv::Rect bounding_box);
 	~Person();
 	void update(cv::Rect bounding_box);
-	void draw(cv::Mat image);
+	void draw(cv::Mat image, double arrowScale);
 };
 

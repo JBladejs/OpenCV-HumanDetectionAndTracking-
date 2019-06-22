@@ -18,7 +18,7 @@ void Person::update(Rect bounding_box)
 	current_central_point = Point(bounding_box.x + (bounding_box.width / 2), bounding_box.y + (bounding_box.height / 2));
 }
 
-void Person::draw(Mat image)
+void Person::draw(Mat image, double arrowScale)
 {
 	rectangle(image, bounding_box, Scalar(255, 255, 0));
 	if (previous_central_point != Point()) 
@@ -27,7 +27,7 @@ void Person::draw(Mat image)
 		double current_y = current_central_point.y;
 		double prev_x = previous_central_point.x;
 		double prev_y = previous_central_point.y;
-		Point next_central_point = Point(current_x + ((current_x - prev_x) * 4), current_y + ((current_y - prev_y) * 4));
-		arrowedLine(image, current_central_point, next_central_point, Scalar(255, 0, 0), 3, 8, 0, 0.3);
+		Point next_central_point = Point(current_x + ((current_x - prev_x) * arrowScale), current_y + ((current_y - prev_y) * arrowScale));
+		arrowedLine(image, current_central_point, next_central_point, Scalar(255, 0, 0), 2, 8, 0, 0.3);
 	}
 }
