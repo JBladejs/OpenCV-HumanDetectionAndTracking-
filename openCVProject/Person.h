@@ -4,6 +4,7 @@
 class Person
 {
 private:
+	bool updated;
 	cv::Point current_central_point;
 	cv::Point previous_central_point;
 	cv::Rect bounding_box;

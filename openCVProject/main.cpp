@@ -20,6 +20,7 @@ using namespace cv;
 using namespace std;
 
 HOGDescriptor hog;
+CascadeClassifier custom_cascade;
 vector<Person> persons;
 
 bool turned_on;
@@ -75,6 +76,7 @@ void detectPersons(Mat frame, string window_name)
 	cvtColor(frame, gray_frame, COLOR_RGB2GRAY);
 	vector<Rect> rectangles;
 	hog.detectMultiScale(gray_frame, rectangles);
+	//custom_cascade.detectMultiScale(gray_frame, rectangles);
 	bool update = false;
 	if (persons.size() > 0) update = true;
 	for (int i = 0; i < rectangles.size(); i++)
@@ -98,6 +100,7 @@ int detectAndTrack(string video_name)
 
 	namedWindow(main_window_name, CV_WINDOW_AUTOSIZE);
 	hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
+	//custom_cascade.load("Samples/cascade.xml");
 
 	while (cap.read(frame) && turned_on && getWindowProperty(main_window_name, 0) >= 0)
 	{
