@@ -17,9 +17,20 @@
 using namespace cv;
 using namespace std;
 
-String person_cascade_name = "Samples/haarcascade_fullbody.xml";
-CascadeClassifier person_cascade;
+//CascadeClassifier person_cascade;
+//CascadeClassifier upper_cascade;
+
+//if(fullbody) person_cascade.detectMultiScale(gray_frame, rectangles, scaleFactor, minNeighbors, 0, Size(minSize, minSize));
+//else upper_cascade.detectMultiScale(gray_frame, rectangles, scaleFactor, minNeighbors, 0, Size(minSize, minSize));
+//if (rectangles.size() == 0) fullbody = !fullbody;
+
+//person_cascade.load("C:/opencv/build/etc/haarcascades/haarcascade_fullbody.xml");
+//upper_cascade.load("C:/opencv/build/etc/haarcascades/haarcascade_upperbody.xml");
+
+HOGDescriptor hog;
 bool turned_on;
+bool fullbody;
+bool track;
 
 double getFrameDelay(VideoCapture capture) {
 	double frame_delay = 1000 / capture.get(CV_CAP_PROP_FPS);
@@ -32,10 +43,8 @@ void interpretKey(int key) {
 		case 27:
 			turned_on = false;
 			break;
-		case -1:
-			break;
-		default:
-			cout << key << endl;
+		case 't':
+			track = !track;
 			break;
 	}
 }
@@ -48,34 +57,52 @@ void showFPS(Mat frame, double frame_time) {
 	putText(frame, ss.str(), Point(0, frame.rows), FONT_HERSHEY_PLAIN, 1.0, Scalar(0, 0, 0));
 }
 
-void execute(Mat frame, string window_name, double frame_time) {
-	resize(frame, frame, Size(640, 360));
+void execute(Mat frame, string window_name, float scaleFactor, int minNeighbors, int minSize) {
 	Mat gray_frame;
 	cvtColor(frame, gray_frame, COLOR_RGB2GRAY);
 	vector<Rect> rectangles;
-	person_cascade.detectMultiScale(gray_frame, rectangles);
+	hog.detectMultiScale(gray_frame, rectangles);
 	for (int i = 0; i < rectangles.size(); i++) {
 		rectangle(frame, rectangles[i], Scalar(255, 255, 0));
 	}
-	showFPS(frame, frame_time);
-	imshow(window_name, frame);
 }
 
 int play(string video_name) {
 	turned_on = true;
+	fullbody = true;
+	track = true;
 	VideoCapture cap(video_name);
 	double frame_delay = getFrameDelay(cap);
 	double frame_time = frame_delay;
 	Mat frame;
 	string window_name = "preview";
 	namedWindow(window_name, CV_WINDOW_AUTOSIZE);
-	if (!person_cascade.load(person_cascade_name)) { printf("--(!)Error loading\n"); return -1; };
+	namedWindow("params", CV_WINDOW_AUTOSIZE);
+
+	int minNeighbors = 2, minSize = 15;
+	float scaleFactor = 1.1;
+	int scaleInt = 11;
+	createTrackbar("scale factor", "params", &scaleInt, 200);
+	createTrackbar("min Neigh", "params", &minNeighbors, 10);
+	createTrackbar("min Size", "params", &minSize, 100);
+
+	hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
 	while (cap.read(frame) && turned_on && getWindowProperty(window_name, 0) >= 0) {
+
+		scaleFactor = (float)scaleInt / 100;
+		if (scaleFactor < 1.01)
+			scaleFactor = 1.1;
+		if (minNeighbors == 0)
+			minNeighbors = 1;
+
 		double start_time = clock();
-		execute(frame, window_name, frame_time);
+		resize(frame, frame, Size(640, 360));
+		if(track) execute(frame, window_name, scaleFactor, minNeighbors, minSize);
+		showFPS(frame, frame_time);
+		imshow(window_name, frame);
 		double delay = frame_delay - (clock() - start_time);
 		int key;
-		if(delay > 0) key = waitKey(delay);
+		if(delay > 1) key = waitKey(delay);
 		else key = waitKey(1);
 		interpretKey(key);
 		frame_time = clock() - start_time;
@@ -86,5 +113,6 @@ int play(string video_name) {
 }
 
 int main() {
-	return play("Samples/TownCentreXVID.avi");
+	//faceRecognition();
+	return play("Samples/person.mp4");
 }
