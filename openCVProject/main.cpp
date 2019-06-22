@@ -17,47 +17,56 @@
 using namespace cv;
 using namespace std;
 
-//CascadeClassifier person_cascade;
-//CascadeClassifier upper_cascade;
-
-//if(fullbody) person_cascade.detectMultiScale(gray_frame, rectangles, scaleFactor, minNeighbors, 0, Size(minSize, minSize));
-//else upper_cascade.detectMultiScale(gray_frame, rectangles, scaleFactor, minNeighbors, 0, Size(minSize, minSize));
-//if (rectangles.size() == 0) fullbody = !fullbody;
-
-//person_cascade.load("C:/opencv/build/etc/haarcascades/haarcascade_fullbody.xml");
-//upper_cascade.load("C:/opencv/build/etc/haarcascades/haarcascade_upperbody.xml");
-
 HOGDescriptor hog;
 bool turned_on;
 bool fullbody;
 bool track;
 
-double getFrameDelay(VideoCapture capture) {
-	double frame_delay = 1000 / capture.get(CV_CAP_PROP_FPS);
-	if (frame_delay == 0) frame_delay = 33.3;
-	return frame_delay;
+int main()
+{
+	return detectAndTrack("person.mp4");
 }
 
-void interpretKey(int key) {
-	switch(key) {
-		case 27:
-			turned_on = false;
-			break;
-		case 't':
-			track = !track;
-			break;
+int detectAndTrack(string video_name)
+{
+	setDefaultBooleans();
+	VideoCapture cap(video_name);
+	double frame_delay = getFrameDelay(cap);
+	double frame_time = frame_delay;
+	Mat frame;
+
+	string main_window_name = "preview";
+	string param_window_name = "params";
+
+	namedWindow(main_window_name, CV_WINDOW_AUTOSIZE);
+
+	hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
+
+	while (cap.read(frame) && turned_on && getWindowProperty(main_window_name, 0) >= 0) 
+	{
+		double start_time = clock();
+
+		resize(frame, frame, Size(frame.cols / 3, frame.rows / 3));
+		if (track) detectPersons(frame, main_window_name);
+
+		showFPS(frame, frame_time);
+		imshow(main_window_name, frame);
+
+		double delay = frame_delay - (clock() - start_time);
+		int key;
+		if (delay > 1) key = waitKey(delay);
+		else key = waitKey(1);
+		interpretKey(key);
+
+		frame_time = clock() - start_time;
 	}
+	cap.release();
+	cvDestroyAllWindows();
+	return 0;
 }
 
-void showFPS(Mat frame, double frame_time) {
-	double fps = 1000 / frame_time;
-	stringstream ss;
-	ss << setprecision(3) << fps;
-	rectangle(frame, Point(0, frame.rows), Point(40, frame.rows - 15), Scalar(255, 255, 255), CV_FILLED);
-	putText(frame, ss.str(), Point(0, frame.rows), FONT_HERSHEY_PLAIN, 1.0, Scalar(0, 0, 0));
-}
-
-void execute(Mat frame, string window_name, float scaleFactor, int minNeighbors, int minSize) {
+void detectPersons(Mat frame, string window_name)
+{
 	Mat gray_frame;
 	cvtColor(frame, gray_frame, COLOR_RGB2GRAY);
 	vector<Rect> rectangles;
@@ -67,52 +76,47 @@ void execute(Mat frame, string window_name, float scaleFactor, int minNeighbors,
 	}
 }
 
-int play(string video_name) {
-	turned_on = true;
-	fullbody = true;
-	track = true;
-	VideoCapture cap(video_name);
-	double frame_delay = getFrameDelay(cap);
-	double frame_time = frame_delay;
-	Mat frame;
-	string window_name = "preview";
-	namedWindow(window_name, CV_WINDOW_AUTOSIZE);
-	namedWindow("params", CV_WINDOW_AUTOSIZE);
+void showFPS(Mat frame, double frame_time)
+{
+	double fps = 1000 / frame_time;
+	stringstream ss;
+	ss << setprecision(3) << fps;
+	rectangle(frame, Point(0, frame.rows), Point(40, frame.rows - 15), Scalar(255, 255, 255), CV_FILLED);
+	putText(frame, ss.str(), Point(0, frame.rows), FONT_HERSHEY_PLAIN, 1.0, Scalar(0, 0, 0));
+}
 
-	int minNeighbors = 2, minSize = 15;
-	float scaleFactor = 1.1;
-	int scaleInt = 11;
-	createTrackbar("scale factor", "params", &scaleInt, 200);
-	createTrackbar("min Neigh", "params", &minNeighbors, 10);
-	createTrackbar("min Size", "params", &minSize, 100);
+double getFrameDelay(VideoCapture capture)
+{
+	double frame_delay = 1000 / capture.get(CV_CAP_PROP_FPS);
+	if (frame_delay == 0) frame_delay = 33.3;
+	return frame_delay;
+}
 
-	hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
-	while (cap.read(frame) && turned_on && getWindowProperty(window_name, 0) >= 0) {
-
-		scaleFactor = (float)scaleInt / 100;
-		if (scaleFactor < 1.01)
-			scaleFactor = 1.1;
-		if (minNeighbors == 0)
-			minNeighbors = 1;
-
-		double start_time = clock();
-		resize(frame, frame, Size(640, 360));
-		if(track) execute(frame, window_name, scaleFactor, minNeighbors, minSize);
-		showFPS(frame, frame_time);
-		imshow(window_name, frame);
-		double delay = frame_delay - (clock() - start_time);
-		int key;
-		if(delay > 1) key = waitKey(delay);
-		else key = waitKey(1);
-		interpretKey(key);
-		frame_time = clock() - start_time;
+void interpretKey(int key)
+{
+	switch (key) {
+	case 27:
+		turned_on = false;
+		break;
+	case 't':
+		track = !track;
+		break;
 	}
-	cap.release();
-	cvDestroyAllWindows();
-	return 0;
 }
 
-int main() {
-	//faceRecognition();
-	return play("Samples/person.mp4");
+void setDefaultBooleans()
+{
+	bool turned_on = true;
+	bool fullbody = true;
+	bool track = true;
 }
+
+//CascadeClassifier person_cascade;
+//CascadeClassifier upper_cascade;
+
+//if(fullbody) person_cascade.detectMultiScale(gray_frame, rectangles, scaleFactor, minNeighbors, 0, Size(minSize, minSize));
+//else upper_cascade.detectMultiScale(gray_frame, rectangles, scaleFactor, minNeighbors, 0, Size(minSize, minSize));
+//if (rectangles.size() == 0) fullbody = !fullbody;
+
+//person_cascade.load("C:/opencv/build/etc/haarcascades/haarcascade_fullbody.xml");
+//upper_cascade.load("C:/opencv/build/etc/haarcascades/haarcascade_upperbody.xml");
