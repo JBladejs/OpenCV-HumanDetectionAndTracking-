@@ -14,19 +14,24 @@
 #include <time.h>
 #include <ctime>
 
-#include "Person.h"
+#include "PersonTracker.h"
 
 using namespace cv;
 using namespace std;
 
 HOGDescriptor hog;
 CascadeClassifier custom_cascade;
-vector<Person> persons;
 
 bool turned_on;
-bool fullbody;
 bool track;
 bool debug;
+bool detect;
+
+double hit_threshold;
+int win_stride;
+int padding;
+double scale;
+double final_threshold;
 
 void interpretKey(int key)
 {
@@ -47,8 +52,8 @@ void interpretKey(int key)
 void setDefaultBooleans()
 {
 	turned_on = true;
-	fullbody = true;
 	track = true;
+	detect = true;
 	debug = false;
 }
 
@@ -68,75 +73,119 @@ void showFPS(Mat frame, double frame_time)
 	putText(frame, ss.str(), Point(0, frame.rows), FONT_HERSHEY_PLAIN, 1.0, Scalar(0, 0, 0));
 }
 
-void drawPersons(Mat frame, double arrowScale)
+void drawPersons(Mat image, double arrowScale, PersonTracker *tracker)
 {
-	for (int i = 0; i < persons.size(); i++)
-	{
-		persons[i].draw(frame, arrowScale);
-	}
+	(*tracker).draw(image, arrowScale);
 }
 
-void detectPersons(Mat frame, string window_name)
+void detectPersonsROI(Mat image, string window_name, PersonTracker *tracker)
 {
-	Mat gray_frame;
-	cvtColor(frame, gray_frame, COLOR_RGB2GRAY);
 	vector<Rect> rectangles;
-	hog.detectMultiScale(gray_frame, rectangles);
-	//custom_cascade.detectMultiScale(gray_frame, rectangles);
-	bool update = false;
-	if(persons.size() > 0) update = true;
-	for (int i = 0; i < rectangles.size(); i++)
-	{
-		if (update) persons[i].update(rectangles[i]);
-		else persons.push_back(Person(rectangles[i]));
-	}
+	selectROIs(window_name, image, rectangles, true, false);
+	(*tracker).trackAll(rectangles);
 }
 
-int detectAndTrack(string video_name)
+void detectPersonsHOG(Mat image, string window_name, PersonTracker *tracker)
+{
+	Mat gray_image;
+	cvtColor(image, gray_image, COLOR_RGB2GRAY);
+	vector<Rect> rectangles;
+	hog.detectMultiScale(image, rectangles, hit_threshold, Size(win_stride, win_stride), Size(padding, padding), scale, final_threshold);
+	(*tracker).track(rectangles);
+}
+
+void detectPersonsHAAR(Mat image, string window_name, PersonTracker *tracker)
+{
+	Mat gray_image;
+	cvtColor(image, gray_image, COLOR_RGB2GRAY);
+	vector<Rect> rectangles;
+	custom_cascade.detectMultiScale(image, rectangles);
+	bool update = false;
+	(*tracker).track(rectangles);
+}
+
+void detectAndTrack(string video_name, int type)
 {
 	setDefaultBooleans();
 	VideoCapture cap(video_name);
 	double frame_delay = getFrameDelay(cap);
 	double frame_time = frame_delay;
-	int debugging_iterator = 0;
 	Mat frame;
 	vector<Person> persons;
 
 	double arrowScale;
 
-	int arrowScaleSli = 30;
+	int arrow_scale_sli = 30;
 
 	string main_window_name = "preview";
 	string param_window_name = "params";
 
+
+	int hit_threshold_sli = 0;
+	int win_stride_sli = 1;
+	int padding_sli = 0;
+	int scale_sli = 105;
+	int final_threshold_sli = 10;
+
+
 	namedWindow(main_window_name, CV_WINDOW_AUTOSIZE);
 
-	hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
-	//custom_cascade.load("Samples/cascade.xml");
+	custom_cascade.load("Samples/cascade.xml");
+	hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
+
+	PersonTracker tracker = PersonTracker(10);
 
 	while (cap.read(frame) && turned_on)
 	{
 		double start_time = clock();
 
-		if (debugging_iterator > 0 && getWindowProperty(main_window_name, 0) < 0) debug = false;
+
+		hit_threshold = (double)hit_threshold_sli / 10.0;
+		win_stride = win_stride_sli * 8;
+		padding = padding_sli;
+		scale = (double)scale_sli / 100.0;
+		final_threshold = (double)final_threshold_sli / 10.0;
+
+
 		if (debug)
 		{
 			namedWindow(param_window_name, CV_WINDOW_AUTOSIZE);
-			createTrackbar("Arrow Scale", param_window_name, &arrowScaleSli, 90);
-			debugging_iterator++;
+			createTrackbar("Arrow Scale", param_window_name, &arrow_scale_sli, 90);
+			createTrackbar("Hit Threshold", param_window_name, &hit_threshold_sli, 100);
+			createTrackbar("Win Stride", param_window_name, &win_stride_sli, 5);
+			createTrackbar("Padding", param_window_name, &padding_sli, 128);
+			createTrackbar("Scale", param_window_name, &scale_sli, 150);
+			createTrackbar("Final Threshold", param_window_name, &final_threshold_sli, 100);
 		}
 		else
 		{
 			destroyWindow(param_window_name);
-			debugging_iterator = 0;
 		}
-		arrowScale = 1 + (arrowScaleSli / 10);
+		arrowScale = 1 + (arrow_scale_sli / 10);
 
-		resize(frame, frame, Size(frame.cols / 3, frame.rows / 3));
+		resize(frame, frame, Size(frame.cols / 2, frame.rows / 2));
 		if (track)
 		{
-			detectPersons(frame, main_window_name);
-			drawPersons(frame, arrowScale);
+			switch (type)
+			{
+			case 1:
+				detectPersonsHOG(frame, main_window_name, &tracker);
+				break;
+			case 2:
+				if (detect)
+				{
+					detectPersonsROI(frame, main_window_name, &tracker);
+				}
+				else
+				{
+					detectPersonsHOG(frame, main_window_name, &tracker);
+				}
+				break;
+			case 3:
+				detectPersonsHAAR(frame, main_window_name, &tracker);
+				break;
+			}
+			drawPersons(frame, arrowScale, &tracker);
 		}
 
 		showFPS(frame, frame_time);
@@ -149,23 +198,40 @@ int detectAndTrack(string video_name)
 		interpretKey(key);
 
 		frame_time = clock() - start_time;
+		detect = false;
 	}
+	persons.clear();
 	cap.release();
-	cvDestroyAllWindows();
-	return 0;
+	destroyAllWindows();
 }
 
 int main()
 {
-	return detectAndTrack("Samples/person.mp4");
+	int choice = 0;
+	string video_file;
+	while (choice != 4)
+	{
+		cout << "Input a number to select an excecution type:" << endl;
+		cout << "1 - Selecting a person to track and than tracking it." << endl;
+		cout << "2 - Users selects person to track and is is tracked by a HOG descriptor." << endl;
+		cout << "3 - Detecting and tracking a person based on a haar clasifiaer trained on that person." << endl;
+		cout << "Type anything else to close the program";
+
+		cin >> choice;
+		switch (choice)
+		{
+		default:
+			choice = 4;
+			break;
+		case 1:
+		case 2:
+			cout << "Input a video file name:" << endl;
+			cin >> video_file;
+			detectAndTrack(video_file, choice);
+			break;
+		case 3:
+			detectAndTrack("Samples/person.mp4", choice);
+			break;
+		}
+	}
 }
-
-//CascadeClassifier person_cascade;
-//CascadeClassifier upper_cascade;
-
-//if(fullbody) person_cascade.detectMultiScale(gray_frame, rectangles, scaleFactor, minNeighbors, 0, Size(minSize, minSize));
-//else upper_cascade.detectMultiScale(gray_frame, rectangles, scaleFactor, minNeighbors, 0, Size(minSize, minSize));
-//if (rectangles.size() == 0) fullbody = !fullbody;
-
-//person_cascade.load("C:/opencv/build/etc/haarcascades/haarcascade_fullbody.xml");
-//upper_cascade.load("C:/opencv/build/etc/haarcascades/haarcascade_upperbody.xml");

@@ -4,7 +4,7 @@
 
 using namespace cv;
 
-Person::Person(cv::Rect bounding_box)
+Person::Person(Rect bounding_box)
 {
 	update(bounding_box);
 }
@@ -30,4 +30,14 @@ void Person::draw(Mat image, double arrowScale)
 		Point next_central_point = Point(current_x + ((current_x - prev_x) * arrowScale), current_y + ((current_y - prev_y) * arrowScale));
 		arrowedLine(image, current_central_point, next_central_point, Scalar(255, 0, 0), 2, 8, 0, 0.3);
 	}
+}
+
+cv::Rect Person::getBoundingBox()
+{
+	return bounding_box;
+}
+
+cv::Point Person::getCentralPoint()
+{
+	return current_central_point;
 }

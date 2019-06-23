@@ -13,5 +13,7 @@ public:
 	~Person();
 	void update(cv::Rect bounding_box);
 	void draw(cv::Mat image, double arrowScale);
+	cv::Rect getBoundingBox();
+	cv::Point getCentralPoint();
 };
 
