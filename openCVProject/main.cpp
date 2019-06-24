@@ -143,7 +143,7 @@ void detectAndTrack(string video_name, int type)
 	namedWindow(main_window_name, CV_WINDOW_AUTOSIZE);
 
 	if (type == 1) hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
-	if (type == 2) custom_cascade.load("Samples/cascade.xml");
+	if (type == 2) custom_cascade.load("cascade/cascade.xml");
 
 	PersonTracker tracker = PersonTracker(10);
 
@@ -245,7 +245,7 @@ int main()
 			detectAndTrack(video_file, choice);
 			break;
 		case 2:
-			detectAndTrack("Samples/person.mp4", choice);
+			detectAndTrack("samples/person.mp4", choice);
 			break;
 		}
 	}
