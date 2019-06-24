@@ -10,15 +10,15 @@ Ten mając listę prostokątów z poprzedniej klatki ustala czy te nowo otrzyman
 Jeżeli jednak tak nie jest, prostokąty te są uznawane jako nowe osoby.
 Jeżeli prostokąt nie został zaaktualizowany od 10 klatek (nie pojawił się żaden inny, ze środkiem ciężkości w jego obrębie) to jest on usuwany.
 
-Użytkownik sam wybiera metodę śledzenia po czym może je obserwować na ekranie. Sglądając śledzenie sylwetek może on wcisnąć następujące klawisze:
+Użytkownik sam wybiera metodę śledzenia po czym może je obserwować na ekranie. Oglądając śledzenie sylwetek może on wcisnąć następujące klawisze:
 * esc - zamyka okno i wraca do wyboru metody;
 * t - zatrzymuje lub wznawia śledzenie;
 * n - sylwetki są wykrywane (lub wskazywane) na nowo;
-* d - włącza tryb debugowania i pokazuje okno z parametrami.
+* d - włącza tryb debugowania i pokazuje okno z parametrami;
 * p - włącza pauzę i zatrzymuje odtwarzanie na obecnej klatce.
 
 Wykonane używając następującego build'a openCV:
 [openCV 3.4.0 compiled from source](https://drive.google.com/file/d/1trv4zzVYmdLpfTzJEYQYvakliNT7pKcs/view?usp=sharing)
 
 Przetestowane i działające z filmami:
-[Filmy do umieszzcenia w folderze "samples"](https://drive.google.com/open?id=1VxemIopesDXqMYxOlv_jtRGtsl3K1m-V)
+[Filmy do umieszczenia w folderze "samples"](https://drive.google.com/open?id=1VxemIopesDXqMYxOlv_jtRGtsl3K1m-V)
