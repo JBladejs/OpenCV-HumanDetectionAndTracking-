@@ -84,6 +84,18 @@ void drawPersons(Mat image, double arrowScale, PersonTracker *tracker)
 	(*tracker).draw(image, arrowScale);
 }
 
+void updateTracker(Mat image, PersonTracker *tracker)
+{
+	(*tracker).updateTracker(image);
+}
+
+void detectandTrackPersonsROI(Mat image, string window_name, PersonTracker *tracker)
+{
+	vector<Rect> rectangles;
+	selectROIs(window_name, image, rectangles, true, false);
+	(*tracker).addToTracker(image, rectangles);
+}
+
 void detectPersonsROI(Mat image, string window_name, PersonTracker *tracker)
 {
 	vector<Rect> rectangles;
@@ -142,8 +154,8 @@ void detectAndTrack(string video_name, int type)
 
 	namedWindow(main_window_name, CV_WINDOW_AUTOSIZE);
 
-	if (type == 1) hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
-	if (type == 2) custom_cascade.load("cascade/cascade.xml");
+	if (type == 2) hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
+	if (type == 3) custom_cascade.load("cascade/cascade.xml");
 
 	PersonTracker tracker = PersonTracker(10);
 
@@ -163,7 +175,7 @@ void detectAndTrack(string video_name, int type)
 			{
 				namedWindow(param_window_name, CV_WINDOW_FREERATIO);
 				createTrackbar("Arrow Scale", param_window_name, &arrow_scale_sli, 90);
-				if (type == 1)
+				if (type == 2)
 				{
 					createTrackbar("Hit Threshold", param_window_name, &hit_threshold_sli, 100);
 					createTrackbar("Win Stride", param_window_name, &win_stride_sli, 5);
@@ -195,10 +207,14 @@ void detectAndTrack(string video_name, int type)
 			switch (type)
 			{
 			case 1:
+				if (detect) detectandTrackPersonsROI(frame, main_window_name, &tracker);
+				else updateTracker(frame, &tracker);
+				break;
+			case 2:
 				if (detect) detectPersonsROI(frame, main_window_name, &tracker);
 				detectPersonsHOG(frame, main_window_name, &tracker);
 				break;
-			case 2:
+			case 3:
 				detectPersonsHAAR(frame, main_window_name, &tracker);
 				break;
 			}
@@ -226,11 +242,12 @@ int main()
 {
 	int choice = 0;
 	string video_file;
-	while (choice != 3)
+	while (choice != 4)
 	{
 		cout << "Input a number to select an excecution type:" << endl;
-		cout << "1 - User selects a person and it is then tracked using HOG detector. (slow)" << endl;
-		cout << "2 - Detecting and tracking a person based on a haar clasifiaer trained on that person. (fast)" << endl;
+		cout << "1 - User selects a person and it is tracked using a tracker. (fast and most accurate)" << endl;
+		cout << "2 - User selects a person and it is then tracked using HOG detector. (slow and innacurate)" << endl;
+		cout << "3 - Detecting and tracking a person based on a haar clasifiaer trained on that person. (fastest and accurate)" << endl;
 		cout << "Type anything else to close the program" << endl;
 
 		cin >> choice;
@@ -240,11 +257,12 @@ int main()
 			choice = 3;
 			break;
 		case 1:
+		case 2:
 			cout << "Input a video file name:" << endl;
 			cin >> video_file;
 			detectAndTrack(video_file, choice);
 			break;
-		case 2:
+		case 3:
 			detectAndTrack("samples/person.mp4", choice);
 			break;
 		}

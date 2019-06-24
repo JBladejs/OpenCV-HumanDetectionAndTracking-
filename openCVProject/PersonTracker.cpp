@@ -1,5 +1,6 @@
 #include "PersonTracker.h"
 #include "Person.h"
+#include <opencv2/tracking.hpp>
 
 using namespace std;
 using namespace cv;
@@ -12,6 +13,7 @@ void PersonTracker::add(Rect bounding_box)
 
 void PersonTracker::update(int index, cv::Rect bounding_box)
 {
+
 	persons[index].update(bounding_box);
 	last_seen[index] = 0;
 }
@@ -31,6 +33,7 @@ PersonTracker::PersonTracker(double frames_to_removal)
 {
 	this->frames_to_removal = frames_to_removal;
 	next_id = 0;
+	tracker = MultiTracker::create();
 }
 
 PersonTracker::~PersonTracker()
@@ -75,17 +78,6 @@ void PersonTracker::track(std::vector<Rect> rectangles)
 			}
 		}
 	}
-
-	/*if (used_points.size() < center_points.size())
-	{
-		for (int i = 0; i < center_points.size(); i++)
-		{
-			if (!vectorContains(used_points, i))
-			{
-				add(rectangles[i]);
-			}
-		}
-	}*/
 }
 
 void PersonTracker::trackAll(vector<Rect> rectangles)
@@ -93,6 +85,27 @@ void PersonTracker::trackAll(vector<Rect> rectangles)
 	for (int i = 0; i < rectangles.size(); i++)
 	{
 			add(rectangles[i]);
+	}
+}
+
+void PersonTracker::addToTracker(Mat image, vector<Rect> rectangles)
+{
+	for (int i = 0; i < rectangles.size(); i++)
+	{
+		tracker->add(TrackerKCF::create(), image, Rect2d(rectangles[i]));
+		add(rectangles[i]);
+	}
+}
+
+void PersonTracker::updateTracker(cv::Mat image)
+{
+	tracker->update(image);
+	if (!persons.empty())
+	{
+		for (int i = 0; i < tracker->getObjects().size(); i++)
+		{
+			update(i, tracker->getObjects()[i]);
+		}
 	}
 }
 
