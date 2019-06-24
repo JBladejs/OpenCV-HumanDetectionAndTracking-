@@ -42,9 +42,14 @@ void interpretKey(int key)
 		break;
 	case 't':
 		track = !track;
+		detect = track;
 		break;
 	case 'd':
 		debug = !debug;
+		break;
+	case 'n':
+		detect = !detect;
+		if (!track) track = !track;
 		break;
 	}
 }
@@ -66,10 +71,11 @@ double getFrameDelay(VideoCapture capture)
 
 void showFPS(Mat frame, double frame_time)
 {
-	double fps = 1000 / frame_time;
+	int fps = 1000 / frame_time;
 	stringstream ss;
-	ss << setprecision(3) << fps;
-	rectangle(frame, Point(0, frame.rows), Point(40, frame.rows - 15), Scalar(255, 255, 255), CV_FILLED);
+	ss << "FPS: ";
+	ss << fps;
+	rectangle(frame, Point(0, frame.rows), Point(70, frame.rows - 15), Scalar(255, 255, 255), CV_FILLED);
 	putText(frame, ss.str(), Point(0, frame.rows), FONT_HERSHEY_PLAIN, 1.0, Scalar(0, 0, 0));
 }
 
@@ -101,7 +107,15 @@ void detectPersonsHAAR(Mat image, string window_name, PersonTracker *tracker)
 	vector<Rect> rectangles;
 	custom_cascade.detectMultiScale(image, rectangles);
 	bool update = false;
-	(*tracker).track(rectangles);
+	if(detect) (*tracker).trackAll(rectangles);
+	else (*tracker).track(rectangles);
+}
+
+Mat resizeImage(Mat image)
+{
+	int proportion = (image.cols / 960);
+	resize(image, image, Size(image.cols / proportion, image.rows / proportion));
+	return image;
 }
 
 void detectAndTrack(string video_name, int type)
@@ -112,33 +126,30 @@ void detectAndTrack(string video_name, int type)
 	double frame_time = frame_delay;
 	Mat frame;
 	vector<Person> persons;
-
-	double arrowScale;
+	bool params_opened = false;
 
 	int arrow_scale_sli = 30;
 
 	string main_window_name = "preview";
 	string param_window_name = "params";
 
-
+	double arrowScale;
 	int hit_threshold_sli = 0;
 	int win_stride_sli = 1;
 	int padding_sli = 0;
 	int scale_sli = 105;
 	int final_threshold_sli = 10;
 
-
 	namedWindow(main_window_name, CV_WINDOW_AUTOSIZE);
 
-	custom_cascade.load("Samples/cascade.xml");
-	hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
+	if (type == 1) hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
+	if (type == 2) custom_cascade.load("Samples/cascade.xml");
 
 	PersonTracker tracker = PersonTracker(10);
 
-	while (cap.read(frame) && turned_on)
+	while (cap.read(frame) && turned_on && cvGetWindowHandle(main_window_name.c_str()))
 	{
 		double start_time = clock();
-
 
 		hit_threshold = (double)hit_threshold_sli / 10.0;
 		win_stride = win_stride_sli * 8;
@@ -146,42 +157,48 @@ void detectAndTrack(string video_name, int type)
 		scale = (double)scale_sli / 100.0;
 		final_threshold = (double)final_threshold_sli / 10.0;
 
-
 		if (debug)
 		{
-			namedWindow(param_window_name, CV_WINDOW_AUTOSIZE);
-			createTrackbar("Arrow Scale", param_window_name, &arrow_scale_sli, 90);
-			createTrackbar("Hit Threshold", param_window_name, &hit_threshold_sli, 100);
-			createTrackbar("Win Stride", param_window_name, &win_stride_sli, 5);
-			createTrackbar("Padding", param_window_name, &padding_sli, 128);
-			createTrackbar("Scale", param_window_name, &scale_sli, 150);
-			createTrackbar("Final Threshold", param_window_name, &final_threshold_sli, 100);
+			if (!params_opened)
+			{
+				namedWindow(param_window_name, CV_WINDOW_FREERATIO);
+				createTrackbar("Arrow Scale", param_window_name, &arrow_scale_sli, 90);
+				if (type == 1)
+				{
+					createTrackbar("Hit Threshold", param_window_name, &hit_threshold_sli, 100);
+					createTrackbar("Win Stride", param_window_name, &win_stride_sli, 5);
+					createTrackbar("Padding", param_window_name, &padding_sli, 128);
+					createTrackbar("Scale", param_window_name, &scale_sli, 150);
+					createTrackbar("Final Threshold", param_window_name, &final_threshold_sli, 100);
+				}
+				params_opened = true;
+			}
+			if (!cvGetWindowHandle(param_window_name.c_str()))
+			{
+				debug = false;
+				params_opened = false;
+			}
 		}
 		else
 		{
-			destroyWindow(param_window_name);
+			if (params_opened)
+			{
+				destroyWindow(param_window_name);
+				params_opened = false;
+			}
 		}
 		arrowScale = 1 + (arrow_scale_sli / 10);
 
-		resize(frame, frame, Size(frame.cols / 2, frame.rows / 2));
+		frame = resizeImage(frame);
 		if (track)
 		{
 			switch (type)
 			{
 			case 1:
+				if (detect) detectPersonsROI(frame, main_window_name, &tracker);
 				detectPersonsHOG(frame, main_window_name, &tracker);
 				break;
 			case 2:
-				if (detect)
-				{
-					detectPersonsROI(frame, main_window_name, &tracker);
-				}
-				else
-				{
-					detectPersonsHOG(frame, main_window_name, &tracker);
-				}
-				break;
-			case 3:
 				detectPersonsHAAR(frame, main_window_name, &tracker);
 				break;
 			}
@@ -195,41 +212,39 @@ void detectAndTrack(string video_name, int type)
 		int key;
 		if (delay > 1) key = waitKey(delay);
 		else key = waitKey(1);
+		detect = false;
 		interpretKey(key);
 
 		frame_time = clock() - start_time;
-		detect = false;
 	}
 	persons.clear();
 	cap.release();
-	destroyAllWindows();
+	cvDestroyAllWindows();
 }
 
 int main()
 {
 	int choice = 0;
 	string video_file;
-	while (choice != 4)
+	while (choice != 3)
 	{
 		cout << "Input a number to select an excecution type:" << endl;
-		cout << "1 - Selecting a person to track and than tracking it." << endl;
-		cout << "2 - Users selects person to track and is is tracked by a HOG descriptor." << endl;
-		cout << "3 - Detecting and tracking a person based on a haar clasifiaer trained on that person." << endl;
-		cout << "Type anything else to close the program";
+		cout << "1 - User selects a person and it is then tracked using HOG detector. (slow)" << endl;
+		cout << "2 - Detecting and tracking a person based on a haar clasifiaer trained on that person. (fast)" << endl;
+		cout << "Type anything else to close the program" << endl;
 
 		cin >> choice;
 		switch (choice)
 		{
 		default:
-			choice = 4;
+			choice = 3;
 			break;
 		case 1:
-		case 2:
 			cout << "Input a video file name:" << endl;
 			cin >> video_file;
 			detectAndTrack(video_file, choice);
 			break;
-		case 3:
+		case 2:
 			detectAndTrack("Samples/person.mp4", choice);
 			break;
 		}
