@@ -99,18 +99,12 @@ void PersonTracker::addToTracker(Mat image, vector<Rect> rectangles)
 
 void PersonTracker::updateTracker(cv::Mat image)
 {
-	bool detected;
-	detected = tracker->update(image);
+	tracker->update(image);
 	if (persons.size() > 0)
 	{
 		for (int i = 0; i < tracker->getObjects().size(); i++)
 		{
-			if(detected) update(i, tracker->getObjects()[i]);
-			else
-			{
-				if (Rect2d(persons[i].getBoundingBox()) == tracker->getObjects()[i]) last_seen[i]++;
-				else update(i, tracker->getObjects()[i]);
-			}
+			update(i, tracker->getObjects()[i]);
 		}
 	}
 }
