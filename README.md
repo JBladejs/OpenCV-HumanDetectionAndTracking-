@@ -16,3 +16,9 @@ Użytkownik sam wybiera metodę śledzenia po czym może je obserwować na ekran
 * n - sylwetki są wykrywane (lub wskazywane) na nowo;
 * d - włącza tryb debugowania i pokazuje okno z parametrami.
 * p - włącza pauzę i zatrzymuje odtwarzanie na obecnej klatce.
+
+Wykonane używając następującego build'a openCV:
+[openCV 3.4.0 compiled from source](https://drive.google.com/file/d/1trv4zzVYmdLpfTzJEYQYvakliNT7pKcs/view?usp=sharing)
+
+Przetestowane i działające z filmami:
+[Filmy do umieszzcenia w folderze "samples"](https://drive.google.com/open?id=1VxemIopesDXqMYxOlv_jtRGtsl3K1m-V)
