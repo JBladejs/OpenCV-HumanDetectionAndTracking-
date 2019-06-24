@@ -7,7 +7,7 @@ class PersonTracker
 private:
 	std::vector<Person> persons;
 	std::vector<int> last_seen;
-	cv::Ptr<cv::MultiTracker> tracker;
+	std::vector<cv::Ptr<cv::Tracker>> trackers;
 	int next_id;
 	int frames_to_removal;
 	void add(cv::Rect bounding_box);

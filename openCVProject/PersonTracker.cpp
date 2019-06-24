@@ -89,22 +89,36 @@ void PersonTracker::trackAll(vector<Rect> rectangles)
 
 void PersonTracker::addToTracker(Mat image, vector<Rect> rectangles)
 {
-	if(persons.size() == 0)tracker = MultiTracker::create();
 	for (int i = 0; i < rectangles.size(); i++)
 	{
-		tracker->add(TrackerKCF::create(), image, Rect2d(rectangles[i]));
+		trackers.push_back(TrackerKCF::create());
+		trackers[trackers.size() - 1]->init(image, rectangles[i]);
 		add(rectangles[i]);
 	}
 }
 
 void PersonTracker::updateTracker(cv::Mat image)
 {
-	tracker->update(image);
 	if (persons.size() > 0)
 	{
-		for (int i = 0; i < tracker->getObjects().size(); i++)
+		vector<int> to_remove;
+		cv::Rect2d rectangle;
+		for (int i = 0; i < trackers.size(); i++)
 		{
-			update(i, tracker->getObjects()[i]);
+			if(trackers[i]->update(image, rectangle)) update(i, rectangle);
+			else
+			{
+				last_seen[i]++;
+				if (last_seen[i] > frames_to_removal) to_remove.push_back(i);
+			}
+		}
+		if (to_remove.size() > 0)
+		{
+			for (int i = 0; i < to_remove.size(); i++)
+			{
+				remove(to_remove[i]);
+				trackers.erase(trackers.begin() + to_remove[i]);
+			}
 		}
 	}
 }
@@ -120,5 +134,5 @@ void PersonTracker::draw(cv::Mat frame, int arrowScale)
 void PersonTracker::clear()
 {
 	persons.clear();
-	tracker.release();
+	trackers.clear();
 }
