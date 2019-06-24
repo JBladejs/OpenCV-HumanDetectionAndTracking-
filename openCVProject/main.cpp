@@ -26,6 +26,7 @@ bool turned_on;
 bool track;
 bool debug;
 bool detect;
+bool pause;
 
 double hit_threshold;
 int win_stride;
@@ -51,6 +52,9 @@ void interpretKey(int key)
 		detect = !detect;
 		if (!track) track = !track;
 		break;
+	case 'p':
+		pause = !pause;
+		break;
 	}
 }
 
@@ -60,6 +64,7 @@ void setDefaultBooleans()
 	track = true;
 	detect = true;
 	debug = false;
+	pause = false;
 }
 
 double getFrameDelay(VideoCapture capture)
@@ -220,6 +225,10 @@ void detectAndTrack(string video_name, int type)
 			}
 			drawPersons(frame, arrowScale, &tracker);
 		}
+		else
+		{
+			tracker.clear();
+		}
 
 		showFPS(frame, frame_time);
 		imshow(main_window_name, frame);
@@ -230,6 +239,11 @@ void detectAndTrack(string video_name, int type)
 		else key = waitKey(1);
 		detect = false;
 		interpretKey(key);
+		while (pause)
+		{
+			key = waitKey(0);
+			interpretKey(key);
+		}
 
 		frame_time = clock() - start_time;
 	}

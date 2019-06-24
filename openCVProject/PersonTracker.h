@@ -22,5 +22,6 @@ public:
 	void addToTracker(cv::Mat image, std::vector<cv::Rect>);
 	void updateTracker(cv::Mat image);
 	void draw(cv::Mat frame, int arrowScale);
+	void clear();
 };
 
